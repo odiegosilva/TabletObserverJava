@@ -69,4 +69,13 @@ dependencies {
     // Debugging
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // DataBase
+    val roomVersion = "2.5.2"
+    implementation("androidx.room:room-runtime:$roomVersion")
+    kapt("androidx.room:room-compiler:$roomVersion")
+    annotationProcessor ("androidx.room:room-compiler:$roomVersion")
+
+    // Suporte para Coroutines com Room
+    implementation("androidx.room:room-ktx:$roomVersion")
 }
