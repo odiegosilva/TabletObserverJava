@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("kotlin-kapt") // Necessário para Hilt
+    id("com.google.dagger.hilt.android") version "2.51.1" apply false// Necessário para Hilt
 
 }
 
@@ -39,44 +39,36 @@ android {
     buildFeatures {
         compose = true
     }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 dependencies {
-    // Core
-    implementation(libs.androidx.core.ktx)
+    // Core Libraries
+    implementation("androidx.core:core:1.12.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
 
-    // Lifecycle
-    implementation(libs.androidx.lifecycle.runtime.ktx)
+    // Lifecycle (opcional, se usar ViewModel)
+    implementation("androidx.lifecycle:lifecycle-runtime:2.6.1")
+    implementation(libs.androidx.ui.graphics.android)
+    implementation(libs.androidx.material3.android)
 
-    // Compose
-    implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
-    implementation(libs.androidx.appcompat)
-
-    // Dependency Injection
-    kapt("com.google.dagger:hilt-android-compiler:2.44")
-
-    // Testing
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-
-    // Debugging
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
-
-    // DataBase
+    // Room Database
     val roomVersion = "2.5.2"
     implementation("androidx.room:room-runtime:$roomVersion")
-    kapt("androidx.room:room-compiler:$roomVersion")
-    annotationProcessor ("androidx.room:room-compiler:$roomVersion")
+    annotationProcessor("androidx.room:room-compiler:$roomVersion")
 
-    // Suporte para Coroutines com Room
-    implementation("androidx.room:room-ktx:$roomVersion")
+    // Testes Unitários
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("androidx.room:room-testing:$roomVersion")
+    implementation("com.google.dagger:hilt-android:2.51.1")
+
+    // Testes Instrumentados
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 }
