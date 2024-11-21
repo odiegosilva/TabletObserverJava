@@ -15,6 +15,19 @@ public class EventLog {
     private String eventType;
     private String description;
 
+    /**
+     * Construtor público vazio para o Room.
+     * Necessário para operações internas do framework.
+     */
+    public EventLog() {
+    }
+
+    public EventLog(long timestamp, String eventType, String description) {
+        this.timestamp = timestamp;
+        this.eventType = eventType;
+        this.description = description;
+    }
+
     // Getters and Setters
     public long getId() { return id; }
     public void setId(long id) { this.id = id; }
