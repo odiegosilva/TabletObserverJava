@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import android.content.Context;
+import android.util.Log;
 
 import androidx.room.Room;
 import androidx.test.core.app.ApplicationProvider;
@@ -41,6 +42,7 @@ public class EventLogDaoTest {
         database = Room.inMemoryDatabaseBuilder(context, AppDatabase.class)
                 .allowMainThreadQueries()
                 .build();
+        Log.d("Test", "Database initialized: " + (database != null));  // Log para verificar a inicialização
         eventLogDao = database.eventLogDao();
     }
 
@@ -59,6 +61,8 @@ public class EventLogDaoTest {
      */
     @Test
     public void testInsertAndRetrieveLogs() {
+        assertNotNull(database);  // Verifique se o banco de dados foi inicializado
+
         // Cria dois logs de exemplo
         EventLog log1 = new EventLog(System.currentTimeMillis(), "ERROR", "Connection lost");
         EventLog log2 = new EventLog(System.currentTimeMillis(), "INFO", "System recovered");
