@@ -1,5 +1,6 @@
 package com.project.tabletobserverjava.data.dao;
 
+import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.Query;
@@ -18,5 +19,5 @@ public interface EventLogDao {
     void insertLog(EventLog eventLog);
 
     @Query("SELECT * FROM event_logs ORDER BY timestamp DESC")
-    List<EventLog> getAllLogs();
+    LiveData<List<EventLog>> getAllLogs(); // Atualiza automaticamente ao alterar os dados
 }

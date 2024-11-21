@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import android.content.Context;
 import android.util.Log;
 
+
 import androidx.room.Room;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -13,9 +14,12 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.project.tabletobserverjava.data.dao.EventLogDao;
 import com.project.tabletobserverjava.data.local.AppDatabase;
 import com.project.tabletobserverjava.data.model.EventLog;
+import com.project.tabletobserverjava.utils.LiveDataTestUtil;
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -31,6 +35,10 @@ public class EventLogDaoTest {
 
     private AppDatabase database;
     private EventLogDao eventLogDao;
+
+    @Rule
+    public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
+
 
     /**
      * Configuração inicial do teste.
@@ -60,24 +68,24 @@ public class EventLogDaoTest {
      * Verifica se os logs inseridos são recuperados corretamente na ordem esperada.
      */
     @Test
-    public void testInsertAndRetrieveLogs() {
-        assertNotNull(database);  // Verifique se o banco de dados foi inicializado
-
-        // Cria dois logs de exemplo
+    public void testInsertAndRetrieveLogs() throws InterruptedException {
+        // Insere os logs no banco
         EventLog log1 = new EventLog(System.currentTimeMillis(), "ERROR", "Connection lost");
         EventLog log2 = new EventLog(System.currentTimeMillis(), "INFO", "System recovered");
 
 
-        // Insere os logs no banco
         eventLogDao.insertLog(log1);
         eventLogDao.insertLog(log2);
 
-        // Recupera os logs e verifica se o tipo foi corretamente atribuído
-        List<EventLog> logs = eventLogDao.getAllLogs();
+
+        // Recupera os logs do LiveData
+        List<EventLog> logs = LiveDataTestUtil.getValue(eventLogDao.getAllLogs());
+
+        // Verifica os resultados
         assertNotNull(logs);
         assertEquals(2, logs.size());
-        assertEquals("ERROR", logs.get(0).getEventType());  // Verifique se o valor é correto
-        assertEquals("INFO", logs.get(1).getEventType());   // Verifique se o valor é correto
+        assertEquals("ERROR", logs.get(0).getEventType());
+        assertEquals("INFO", logs.get(1).getEventType());
     }
 }
 
