@@ -5,6 +5,7 @@ package com.project.tabletobserverjava.data.model;
  */
 
 import androidx.room.Entity;
+import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
 @Entity(tableName = "event_logs")
@@ -21,7 +22,7 @@ public class EventLog {
      */
     public EventLog() {
     }
-
+    @Ignore
     public EventLog(long timestamp, String eventType, String description) {
         this.timestamp = timestamp;
         this.eventType = eventType;
