@@ -1,4 +1,5 @@
 package com.project.tabletobserverjava.ui.theme;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,7 +11,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.project.tabletobserverjava.R;
 import com.project.tabletobserverjava.data.model.EventLog;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Adapter para exibir os logs na RecyclerView.
@@ -38,14 +42,29 @@ public class EventLogAdapter extends RecyclerView.Adapter<EventLogAdapter.ViewHo
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         EventLog log = logs.get(position);
+
+        // Formata o timestamp para exibir data e hora
+        String formattedDate = formatTimestamp(log.getTimestamp());
+
         holder.typeTextView.setText(log.getEventType());
         holder.descriptionTextView.setText(log.getDescription());
-        holder.timestampTextView.setText(String.valueOf(log.getTimestamp()));
+        holder.timestampTextView.setText(formattedDate); // Exibe a data e hora formatadas
     }
 
     @Override
     public int getItemCount() {
         return logs.size();
+    }
+
+    /**
+     * Converte um timestamp (em milissegundos) para uma string de data e hora formatada.
+     *
+     * @param timestamp O valor do timestamp em milissegundos.
+     * @return String representando a data e hora no formato "dd/MM/yyyy HH:mm:ss".
+     */
+    private String formatTimestamp(long timestamp) {
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault());
+        return sdf.format(new Date(timestamp));
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
