@@ -1,5 +1,8 @@
 package com.project.tabletobserverjava.ui.theme;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -90,6 +93,7 @@ public class EventLogFragment extends Fragment {
 
     /**
      * Adiciona logs iniciais ao banco de dados para simular o comportamento real.
+     * Verifica o estado da conexão antes de registrar erros de conexão.
      */
     private void addInitialLogs() {
         try {
@@ -98,18 +102,50 @@ public class EventLogFragment extends Fragment {
                     "INFO", // eventType
                     "Aplicativo iniciado com sucesso." // description
             ));
+
+            // Adiciona log de erro de conexão apenas se não houver conexão
+            if (!isConnectedToInternet()) {
+                viewModel.insertLog(new EventLog(
+                        System.currentTimeMillis(),
+                        "ERROR",
+                        "Erro de conexão detectado."
+                ));
+            } else{
+                viewModel.insertLog(new EventLog(
+                        System.currentTimeMillis(),
+                        "INFO",
+                        "Dispositivo Conectado"));
+            }
+
             viewModel.insertLog(new EventLog(
                     System.currentTimeMillis(),
-                    "WARNING",
-                    "Uso de memória alto."
-            ));
-            viewModel.insertLog(new EventLog(
-                    System.currentTimeMillis(),
-                    "ERROR",
-                    "Erro de conexão detectado."
+                    "DEBUG",
+                    "Monitoramento iniciado."
             ));
         } catch (Exception e) {
             Log.e("EventLogFragment", "Erro ao adicionar logs iniciais: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Verifica se o dispositivo está conectado à internet.
+     *
+     * @return true se conectado, false caso contrário.
+     */
+    private boolean isConnectedToInternet() {
+        try {
+            ConnectivityManager connectivityManager =
+                    (ConnectivityManager) requireContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+
+            if (connectivityManager != null) {
+                NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+                return networkInfo != null && networkInfo.isConnected();
+            }
+
+        } catch (Exception e) {
+            Log.e("EventLogFragment", "Erro ao verificar conexão com a internet: " + e.getMessage(), e);
+        }
+
+        return false;
     }
 }
