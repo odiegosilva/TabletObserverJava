@@ -56,6 +56,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime:2.6.1")
     implementation(libs.androidx.ui.graphics.android)
     implementation(libs.androidx.material3.android)
+    implementation ("androidx.recyclerview:recyclerview:1.3.1")
     androidTestImplementation(libs.androidx.core.testing)
 
     // Room Database

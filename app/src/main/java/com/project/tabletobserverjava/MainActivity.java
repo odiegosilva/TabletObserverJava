@@ -5,19 +5,25 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.project.tabletobserverjava.ui.theme.EventLogFragment;
+
+/**
+ * MainActivity é a atividade principal que hospeda o EventLogFragment.
+ * Gerencia o ciclo de vida principal da aplicação.
+ */
 public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
 
-        // Criação de um TextView para exibir uma mensagem
-        TextView textView = new TextView(this);
-        textView.setText("Olá, mundo! Bem-vindo ao meu app.");
-        textView.setTextSize(20);
-        textView.setPadding(16, 16, 16, 16);
-
-        // Configuração do layout principal da Activity
-        setContentView(textView);
+        // Adiciona o fragment apenas na primeira criação
+        if (savedInstanceState == null) {
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, new EventLogFragment())
+                    .commit();
+        }
     }
 }
