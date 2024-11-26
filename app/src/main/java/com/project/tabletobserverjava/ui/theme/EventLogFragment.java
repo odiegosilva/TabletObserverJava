@@ -148,6 +148,7 @@ public class EventLogFragment extends Fragment {
         return false;
     }
 
+
     private void updateConnectionLog() {
         boolean isConnected = isConnectedToInternet(); // Verifica o estado da conexão
         String connectionStatus = isConnected ? "Dispositivo Conectado" : "Erro de conexão detectado";
