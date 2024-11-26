@@ -47,48 +47,30 @@ public class EventLogFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         try {
-            // Configura RecyclerView
+            // Configuração básica do RecyclerView e ViewModel
             RecyclerView recyclerView = view.findViewById(R.id.recycler_view);
             recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
-
-            // Configura o adapter
             adapter = new EventLogAdapter(new ArrayList<>());
             recyclerView.setAdapter(adapter);
 
-            // Configura o repositório e o ViewModel
             EventLogRepository repository = new EventLogRepository(
                     AppDatabase.getInstance(requireContext()).eventLogDao()
             );
             EventLogViewModelFactory factory = new EventLogViewModelFactory(repository);
             viewModel = new ViewModelProvider(this, factory).get(EventLogViewModel.class);
 
-            // Insere logs iniciais
+            // Atualiza a RecyclerView em tempo real
+            viewModel.getLiveLogs().observe(getViewLifecycleOwner(), logs -> {
+                adapter.updateLogs(logs);
+            });
+
+            // Adiciona logs para teste
             addInitialLogs();
-
-            // Observa mudanças nos logs
-            viewModel.getAllLogs().observe(getViewLifecycleOwner(), logs -> {
-                adapter.updateLogs(logs); // Atualiza a RecyclerView
-            });
-
-            // Configura o botão para adicionar logs
-            Button addLogButton = view.findViewById(R.id.btn_add_log);
-            addLogButton.setOnClickListener(v -> {
-                try {
-                    viewModel.insertLog(new EventLog(
-                            System.currentTimeMillis(), // timestamp
-                            "DEBUG", // eventType
-                            "Log adicionado manualmente." // description
-                    ));
-                } catch (Exception e) {
-                    Log.e("EventLogFragment", "Erro ao adicionar log manualmente: " + e.getMessage(), e);
-                }
-            });
 
         } catch (Exception e) {
             Log.e("EventLogFragment", "Erro durante a inicialização: " + e.getMessage(), e);
         }
     }
-
 
 
     /**
@@ -101,6 +83,12 @@ public class EventLogFragment extends Fragment {
                     System.currentTimeMillis(), // timestamp
                     "INFO", // eventType
                     "Aplicativo iniciado com sucesso." // description
+            ));
+
+            viewModel.insertLog(new EventLog(
+                    System.currentTimeMillis(),
+                    "DEBUG",
+                    "Monitoramento iniciado."
             ));
 
             // Adiciona log de erro de conexão apenas se não houver conexão
@@ -117,11 +105,6 @@ public class EventLogFragment extends Fragment {
                         "Dispositivo Conectado"));
             }
 
-            viewModel.insertLog(new EventLog(
-                    System.currentTimeMillis(),
-                    "DEBUG",
-                    "Monitoramento iniciado."
-            ));
         } catch (Exception e) {
             Log.e("EventLogFragment", "Erro ao adicionar logs iniciais: " + e.getMessage(), e);
         }

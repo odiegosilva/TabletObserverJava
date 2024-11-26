@@ -1,11 +1,13 @@
 package com.project.tabletobserverjava.viewModel;
 
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.project.tabletobserverjava.data.model.EventLog;
 import com.project.tabletobserverjava.data.repository.EventLogRepository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -15,31 +17,32 @@ import java.util.List;
 public class EventLogViewModel extends ViewModel {
 
     private final EventLogRepository repository;
+    private final MutableLiveData<List<EventLog>> liveLogs = new MutableLiveData<>(new ArrayList<>());
+    private boolean saveLogsEnabled = false; // Flag de controle de persistência
 
-    /**
-     * Construtor para inicializar o repositório.
-     *
-     * @param repository Instância do repositório para acesso aos dados.
-     */
     public EventLogViewModel(EventLogRepository repository) {
         this.repository = repository;
     }
 
-    /**
-     * Obtém todos os logs armazenados como LiveData.
-     *
-     * @return LiveData com a lista de logs.
-     */
-    public LiveData<List<EventLog>> getAllLogs() {
-        return repository.getAllLogs();
+    public LiveData<List<EventLog>> getLiveLogs() {
+        return liveLogs;
     }
 
-    /**
-     * Adiciona um novo log ao banco de dados.
-     *
-     * @param log Instância de EventLog a ser adicionada.
-     */
     public void insertLog(EventLog log) {
-        repository.insertLog(log);
+        // Adiciona o log à lista em memória
+        List<EventLog> currentLogs = liveLogs.getValue();
+        if (currentLogs != null) {
+            currentLogs.add(0, log); // Adiciona no topo da lista
+            liveLogs.setValue(currentLogs);
+        }
+
+        // Salva no banco apenas se o armazenamento estiver ativado
+        if (saveLogsEnabled) {
+            repository.insertLog(log);
+        }
+    }
+
+    public void setSaveLogsEnabled(boolean enabled) {
+        this.saveLogsEnabled = enabled;
     }
 }
