@@ -68,7 +68,7 @@ public class EventLogFragment extends Fragment {
             });
             // Timer para adicionar logs em tempo real
             logUpdateRunnable = () -> {
-                addInitialLogs(); // Atualiza os logs, incluindo conexão
+                addInitialLogs(); // Atualiza os logs
                 handler.postDelayed(logUpdateRunnable, 5000); // Reexecuta após 5 segundos
             };
             handler.post(logUpdateRunnable); // Inicia o Timer

@@ -31,20 +31,24 @@ public class EventLogViewModel extends ViewModel {
     }
 
     public void insertLog(EventLog log) {
-        // Adiciona o log à lista em memória
         List<EventLog> currentLogs = liveLogs.getValue();
-        if (currentLogs != null) {
-            currentLogs.add(0, log); // Adiciona no topo da lista
-            liveLogs.setValue(currentLogs);
+        if (currentLogs == null) currentLogs = new ArrayList<>();
+
+        // Verifica se um log do mesmo tipo já existe
+        boolean logExists = false;
+        for (int i = 0; i < currentLogs.size(); i++) {
+            if (currentLogs.get(i).getEventType().equals(log.getEventType())) {
+                currentLogs.set(i, log); // Atualiza o log existente
+                logExists = true;
+                break;
+            }
         }
 
-        // Salva no banco apenas se o armazenamento estiver ativado
-        if (saveLogsEnabled) {
-            repository.insertLog(log);
+        // Se o log não existir, adiciona à lista
+        if (!logExists) {
+            currentLogs.add(0, log);
         }
-    }
 
-    public void setSaveLogsEnabled(boolean enabled) {
-        this.saveLogsEnabled = enabled;
+        liveLogs.setValue(currentLogs); // Atualiza os dados observados
     }
 }
