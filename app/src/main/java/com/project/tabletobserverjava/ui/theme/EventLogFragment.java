@@ -4,6 +4,7 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -33,6 +34,8 @@ import java.util.Calendar;
  */
 public class EventLogFragment extends Fragment {
 
+    private Handler handler = new Handler();
+    private Runnable logUpdateRunnable;
     private EventLogViewModel viewModel;
     private EventLogAdapter adapter;
 
@@ -63,13 +66,23 @@ public class EventLogFragment extends Fragment {
             viewModel.getLiveLogs().observe(getViewLifecycleOwner(), logs -> {
                 adapter.updateLogs(logs);
             });
-
-            // Adiciona logs para teste
-            addInitialLogs();
+            // Timer para adicionar logs em tempo real
+            logUpdateRunnable = () -> {
+                addInitialLogs(); // Atualiza os logs, incluindo conexão
+                handler.postDelayed(logUpdateRunnable, 5000); // Reexecuta após 5 segundos
+            };
+            handler.post(logUpdateRunnable); // Inicia o Timer
 
         } catch (Exception e) {
             Log.e("EventLogFragment", "Erro durante a inicialização: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // Remove o Timer quando a view for destruída para evitar vazamentos de memória
+        handler.removeCallbacks(logUpdateRunnable);
     }
 
 

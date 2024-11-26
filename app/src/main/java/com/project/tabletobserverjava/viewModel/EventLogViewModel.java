@@ -18,6 +18,8 @@ public class EventLogViewModel extends ViewModel {
 
     private final EventLogRepository repository;
     private final MutableLiveData<List<EventLog>> liveLogs = new MutableLiveData<>(new ArrayList<>());
+    private static final int MAX_LOGS = 20; // Limite máximo de logs na lista
+
     private boolean saveLogsEnabled = false; // Flag de controle de persistência
 
     public EventLogViewModel(EventLogRepository repository) {
