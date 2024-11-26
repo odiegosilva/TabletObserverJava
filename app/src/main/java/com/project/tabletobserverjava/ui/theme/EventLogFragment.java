@@ -104,6 +104,9 @@ public class EventLogFragment extends Fragment {
                     "Monitoramento iniciado."
             ));
 
+            // Log dinâmico de conexão inicial
+            updateConnectionLog();
+
             // Adiciona log de erro de conexão apenas se não houver conexão
             if (!isConnectedToInternet()) {
                 viewModel.insertLog(new EventLog(
@@ -143,5 +146,17 @@ public class EventLogFragment extends Fragment {
         }
 
         return false;
+    }
+
+    private void updateConnectionLog() {
+        boolean isConnected = isConnectedToInternet(); // Verifica o estado da conexão
+        String connectionStatus = isConnected ? "Dispositivo Conectado" : "Erro de conexão detectado";
+
+        // Insere ou atualiza o log de conexão
+        viewModel.insertLog(new EventLog(
+                System.currentTimeMillis(),
+                "CONNECTION", // Tipo fixo para identificar o log de conexão
+                connectionStatus
+        ));
     }
 }

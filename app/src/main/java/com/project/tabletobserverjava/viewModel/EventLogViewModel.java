@@ -34,21 +34,37 @@ public class EventLogViewModel extends ViewModel {
         List<EventLog> currentLogs = liveLogs.getValue();
         if (currentLogs == null) currentLogs = new ArrayList<>();
 
-        // Verifica se um log do mesmo tipo já existe
-        boolean logExists = false;
+        boolean logHandled = false;
+
+        // Verifica se o log já existe e se pode ser substituído
         for (int i = 0; i < currentLogs.size(); i++) {
-            if (currentLogs.get(i).getEventType().equals(log.getEventType())) {
-                currentLogs.set(i, log); // Atualiza o log existente
-                logExists = true;
+            EventLog existingLog = currentLogs.get(i);
+
+            // Substituir logs dinâmicos (ex.: conexão)
+            if (existingLog.getEventType().equals(log.getEventType())) {
+                if (log.getEventType().equals("CONNECTION")) {
+                    currentLogs.set(i, log); // Atualiza o log de conexão
+                    logHandled = true;
+                }
                 break;
             }
         }
 
-        // Se o log não existir, adiciona à lista
-        if (!logExists) {
+        // Adiciona logs fixos apenas uma vez
+        if (!logHandled && !isFixedLog(log.getEventType())) {
             currentLogs.add(0, log);
         }
 
-        liveLogs.setValue(currentLogs); // Atualiza os dados observados
+        liveLogs.setValue(currentLogs); // Atualiza o LiveData
+    }
+
+    /**
+     * Verifica se um log é fixo (não deve ser substituído após ser adicionado).
+     *
+     * @param eventType Tipo do log.
+     * @return true se for fixo, false caso contrário.
+     */
+    private boolean isFixedLog(String eventType) {
+        return eventType.equals("INFO") || eventType.equals("DEBUG");
     }
 }
