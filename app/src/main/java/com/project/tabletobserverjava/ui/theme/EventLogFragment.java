@@ -3,6 +3,7 @@ package com.project.tabletobserverjava.ui.theme;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.TrafficStats;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -39,6 +40,10 @@ public class EventLogFragment extends Fragment {
     private EventLogViewModel viewModel;
     private EventLogAdapter adapter;
 
+    // Variáveis para calcular o consumo de dados
+    private long initialRxBytes = 0;
+    private long initialTxBytes = 0;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -66,12 +71,17 @@ public class EventLogFragment extends Fragment {
             // Observa mudanças nos logs
             viewModel.getLiveLogs().observe(getViewLifecycleOwner(), logs -> adapter.updateLogs(logs));
 
+            // Inicializa os valores de tráfego de dados
+            initialRxBytes = TrafficStats.getTotalRxBytes();
+            initialTxBytes = TrafficStats.getTotalTxBytes();
+
             // Adiciona logs iniciais
             addInitialLogs();
 
             // Timer para atualizar logs de conexão
             logUpdateRunnable = () -> {
                 updateConnectionLog(); // Atualiza apenas o log de conexão
+                updateDataUsageLog();
                 handler.postDelayed(logUpdateRunnable, 5000); // Reexecuta a cada 5 segundos
             };
             handler.post(logUpdateRunnable);
@@ -122,6 +132,30 @@ public class EventLogFragment extends Fragment {
                 connectionStatus
         ));
     }
+
+    /**
+     * Atualiza o log de consumo de dados Wi-Fi.
+     */
+    private void updateDataUsageLog() {
+        try {
+            long currentRxBytes = TrafficStats.getTotalRxBytes();
+            long currentTxBytes = TrafficStats.getTotalTxBytes();
+
+            // Calcula o consumo total em MB desde a inicialização
+            long totalBytes = (currentRxBytes - initialRxBytes) + (currentTxBytes - initialTxBytes);
+            double totalMB = totalBytes / (1024.0 * 1024.0); // Converte para MB
+
+            // Atualiza o log com o consumo de dados
+            viewModel.insertLog(new EventLog(
+                    System.currentTimeMillis(),
+                    "DATA_USAGE", // Tipo fixo para identificar logs de consumo de dados
+                    String.format("Consumo de dados Wi-Fi: %.2f MB", totalMB)
+            ));
+        } catch (Exception e) {
+            Log.e("EventLogFragment", "Erro ao atualizar log de consumo de dados: " + e.getMessage(), e);
+        }
+    }
+
 
     /**
      * Verifica se o dispositivo está conectado à internet.
