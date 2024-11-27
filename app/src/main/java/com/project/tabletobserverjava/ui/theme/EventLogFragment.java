@@ -50,28 +50,31 @@ public class EventLogFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         try {
-            // Configuração básica do RecyclerView e ViewModel
+            // Configuração do RecyclerView e Adapter
             RecyclerView recyclerView = view.findViewById(R.id.recycler_view);
             recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
             adapter = new EventLogAdapter(new ArrayList<>());
             recyclerView.setAdapter(adapter);
 
+            // Configuração do ViewModel
             EventLogRepository repository = new EventLogRepository(
                     AppDatabase.getInstance(requireContext()).eventLogDao()
             );
             EventLogViewModelFactory factory = new EventLogViewModelFactory(repository);
             viewModel = new ViewModelProvider(this, factory).get(EventLogViewModel.class);
 
-            // Atualiza a RecyclerView em tempo real
-            viewModel.getLiveLogs().observe(getViewLifecycleOwner(), logs -> {
-                adapter.updateLogs(logs);
-            });
-            // Timer para adicionar logs em tempo real
+            // Observa mudanças nos logs
+            viewModel.getLiveLogs().observe(getViewLifecycleOwner(), logs -> adapter.updateLogs(logs));
+
+            // Adiciona logs iniciais
+            addInitialLogs();
+
+            // Timer para atualizar logs de conexão
             logUpdateRunnable = () -> {
-                addInitialLogs(); // Atualiza os logs
-                handler.postDelayed(logUpdateRunnable, 5000); // Reexecuta após 5 segundos
+                updateConnectionLog(); // Atualiza apenas o log de conexão
+                handler.postDelayed(logUpdateRunnable, 5000); // Reexecuta a cada 5 segundos
             };
-            handler.post(logUpdateRunnable); // Inicia o Timer
+            handler.post(logUpdateRunnable);
 
         } catch (Exception e) {
             Log.e("EventLogFragment", "Erro durante a inicialização: " + e.getMessage(), e);
@@ -81,49 +84,43 @@ public class EventLogFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        // Remove o Timer quando a view for destruída para evitar vazamentos de memória
+        // Remove o Timer ao destruir a View
         handler.removeCallbacks(logUpdateRunnable);
     }
 
-
     /**
-     * Adiciona logs iniciais ao banco de dados para simular o comportamento real.
-     * Verifica o estado da conexão antes de registrar erros de conexão.
+     * Adiciona logs iniciais fixos na primeira inicialização.
      */
     private void addInitialLogs() {
         try {
+            // Logs fixos
             viewModel.insertLog(new EventLog(
-                    System.currentTimeMillis(), // timestamp
-                    "INFO", // eventType
-                    "Aplicativo iniciado com sucesso." // description
+                    System.currentTimeMillis(),
+                    "INFO",
+                    "Aplicativo iniciado com sucesso."
             ));
-
             viewModel.insertLog(new EventLog(
                     System.currentTimeMillis(),
                     "DEBUG",
                     "Monitoramento iniciado."
             ));
-
-            // Log dinâmico de conexão inicial
-            updateConnectionLog();
-
-            // Adiciona log de erro de conexão apenas se não houver conexão
-            if (!isConnectedToInternet()) {
-                viewModel.insertLog(new EventLog(
-                        System.currentTimeMillis(),
-                        "ERROR",
-                        "Erro de conexão detectado."
-                ));
-            } else{
-                viewModel.insertLog(new EventLog(
-                        System.currentTimeMillis(),
-                        "INFO",
-                        "Dispositivo Conectado"));
-            }
-
         } catch (Exception e) {
             Log.e("EventLogFragment", "Erro ao adicionar logs iniciais: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Atualiza o log de conexão de acordo com o estado atual.
+     */
+    private void updateConnectionLog() {
+        boolean isConnected = isConnectedToInternet();
+        String connectionStatus = isConnected ? "Dispositivo Conectado" : "Erro de conexão detectado";
+
+        viewModel.insertLog(new EventLog(
+                System.currentTimeMillis(),
+                "CONNECTION", // Tipo fixo para identificar logs de conexão
+                connectionStatus
+        ));
     }
 
     /**
@@ -140,24 +137,9 @@ public class EventLogFragment extends Fragment {
                 NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
                 return networkInfo != null && networkInfo.isConnected();
             }
-
         } catch (Exception e) {
             Log.e("EventLogFragment", "Erro ao verificar conexão com a internet: " + e.getMessage(), e);
         }
-
         return false;
-    }
-
-
-    private void updateConnectionLog() {
-        boolean isConnected = isConnectedToInternet(); // Verifica o estado da conexão
-        String connectionStatus = isConnected ? "Dispositivo Conectado" : "Erro de conexão detectado";
-
-        // Insere ou atualiza o log de conexão
-        viewModel.insertLog(new EventLog(
-                System.currentTimeMillis(),
-                "CONNECTION", // Tipo fixo para identificar o log de conexão
-                connectionStatus
-        ));
     }
 }

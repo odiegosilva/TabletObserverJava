@@ -60,5 +60,4 @@ public class EventLogViewModel extends ViewModel {
 
         liveLogs.setValue(currentLogs); // Atualiza os dados observados
     }
-
 }
