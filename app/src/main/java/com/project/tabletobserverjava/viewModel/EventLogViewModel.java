@@ -99,7 +99,7 @@ public class EventLogViewModel extends ViewModel {
                 }
             } catch (Exception e) {
                 // Atualiza ou substitui o log de erro de latência
-                insertLog(new EventLog(System.currentTimeMillis(), "LATENCY", "Erro ao medir latência: " + e.getMessage()));
+                insertLog(new EventLog(System.currentTimeMillis(), "LATENCY", "Erro ao medir latência: Internet foi deconectada "));
             }
         }).start();
     }
