@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel;
 import com.project.tabletobserverjava.data.model.EventLog;
 import com.project.tabletobserverjava.data.repository.EventLogRepository;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,6 +60,47 @@ public class EventLogViewModel extends ViewModel {
             currentLogs = currentLogs.subList(0, MAX_LOGS);
         }
 
-        liveLogs.setValue(currentLogs); // Atualiza os dados observados
+        liveLogs.postValue(currentLogs); // Atualiza os dados observados
+    }
+
+    /**
+     * Testa a latência da rede ativa.
+     *
+     * @param serverURL URL do servidor para teste (ex.: "https://www.google.com").
+     */
+    public void testLatency(String serverURL) {
+        new Thread(() -> {
+            try {
+                long startTime = System.currentTimeMillis();
+
+                // Envia uma requisição HEAD para o servidor
+                HttpURLConnection connection = (HttpURLConnection) new URL(serverURL).openConnection();
+                connection.setRequestMethod("HEAD");
+                connection.setConnectTimeout(3000); // Timeout de 3 segundos
+                connection.setReadTimeout(3000);
+
+                connection.connect();
+
+                if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                    long latency = System.currentTimeMillis() - startTime;
+                    connection.disconnect();
+
+                    // Log para conexão rápida ou lenta
+                    String message = (latency < 300)
+                            ? "Conexão rápida: " + latency + "ms"
+                            : "Conexão lenta: " + latency + "ms";
+
+                    // Atualiza ou substitui o log de latência
+                    insertLog(new EventLog(System.currentTimeMillis(), "LATENCY", message));
+                } else {
+                    connection.disconnect();
+                    // Atualiza ou substitui o log de erro de latência
+                    insertLog(new EventLog(System.currentTimeMillis(), "LATENCY", "Falha ao medir latência"));
+                }
+            } catch (Exception e) {
+                // Atualiza ou substitui o log de erro de latência
+                insertLog(new EventLog(System.currentTimeMillis(), "LATENCY", "Erro ao medir latência: " + e.getMessage()));
+            }
+        }).start();
     }
 }

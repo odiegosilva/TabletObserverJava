@@ -81,7 +81,8 @@ public class EventLogFragment extends Fragment {
             // Timer para atualizar logs de conexão
             logUpdateRunnable = () -> {
                 updateConnectionLog(); // Atualiza apenas o log de conexão
-                updateDataUsageLog();
+                updateDataUsageLog();  // Atualiza o log de consumo de dados
+                viewModel.testLatency("https://www.google.com");
                 handler.postDelayed(logUpdateRunnable, 5000); // Reexecuta a cada 5 segundos
             };
             handler.post(logUpdateRunnable);
