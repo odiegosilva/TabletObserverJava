@@ -1,5 +1,6 @@
 package com.project.tabletobserverjava.ui.theme;
 
+import android.app.ActivityManager;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -68,8 +69,17 @@ public class EventLogFragment extends Fragment {
             EventLogViewModelFactory factory = new EventLogViewModelFactory(repository);
             viewModel = new ViewModelProvider(this, factory).get(EventLogViewModel.class);
 
+            if (viewModel != null) {
+                Log.d("EventLogFragment", "ViewModel inicializado com sucesso.");
+            } else {
+                Log.e("EventLogFragment", "Falha ao inicializar o ViewModel.");
+            }
+
             // Observa mudanças nos logs
-            viewModel.getLiveLogs().observe(getViewLifecycleOwner(), logs -> adapter.updateLogs(logs));
+            viewModel.getLiveLogs().observe(getViewLifecycleOwner(), logs ->{
+                Log.d("EventLogFragment", "Observando logs. Total de logs recebidos: " + logs.size());
+                adapter.updateLogs(logs);
+            });
 
             // Inicializa os valores de tráfego de dados
             initialRxBytes = TrafficStats.getTotalRxBytes();
@@ -78,10 +88,12 @@ public class EventLogFragment extends Fragment {
             // Adiciona logs iniciais
             addInitialLogs();
 
+
             // Timer para atualizar logs de conexão
             logUpdateRunnable = () -> {
                 updateConnectionLog(); // Atualiza apenas o log de conexão
                 updateDataUsageLog();  // Atualiza o log de consumo de dados
+                updateMemoryUsageLog();
                 viewModel.testLatency("https://www.google.com");
                 handler.postDelayed(logUpdateRunnable, 5000); // Reexecuta a cada 5 segundos
             };
@@ -90,6 +102,20 @@ public class EventLogFragment extends Fragment {
         } catch (Exception e) {
             Log.e("EventLogFragment", "Erro durante a inicialização: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        // Pausa o Timer quando o Fragment não está visível
+        handler.removeCallbacks(logUpdateRunnable);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Retoma o Timer quando o Fragment volta a ser visível
+        handler.post(logUpdateRunnable);
     }
 
     @Override
@@ -119,6 +145,42 @@ public class EventLogFragment extends Fragment {
             Log.e("EventLogFragment", "Erro ao adicionar logs iniciais: " + e.getMessage(), e);
         }
     }
+
+    /**
+     * Atualiza o log de uso de memória.
+     */
+    private void updateMemoryUsageLog() {
+        try {
+            ActivityManager activityManager = (ActivityManager) requireContext().getSystemService(Context.ACTIVITY_SERVICE);
+            ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
+            activityManager.getMemoryInfo(memoryInfo);
+
+            long totalMemory = memoryInfo.totalMem / (1024 * 1024); // Total de memória em MB
+            long usedMemory = (memoryInfo.totalMem - memoryInfo.availMem) / (1024 * 1024); // Memória usada em MB
+            long usedPercentage = (usedMemory * 100) / totalMemory; // Porcentagem de memória usada
+
+            Log.d("EventLogFragment", String.format("Memória utilizada: %d MB de %d MB (%d%%)", usedMemory, totalMemory, usedPercentage));
+
+            // Atualiza o log de memória no ViewModel
+            viewModel.insertLog(new EventLog(
+                    System.currentTimeMillis(),
+                    "MEMORY_USAGE",
+                    String.format("Memória utilizada: %d MB de %d MB (%d%%)", usedMemory, totalMemory, usedPercentage)
+            ));
+
+            // Alerta se o uso de memória estiver alto
+            if (usedPercentage > 80) {
+                viewModel.insertLog(new EventLog(
+                        System.currentTimeMillis(),
+                        "WARNING",
+                        "Uso de memória acima de 80%"
+                ));
+            }
+        } catch (Exception e) {
+            Log.e("EventLogFragment", "Erro ao atualizar log de uso de memória: " + e.getMessage(), e);
+        }
+    }
+
 
     /**
      * Atualiza o log de conexão de acordo com o estado atual.

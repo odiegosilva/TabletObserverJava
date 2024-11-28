@@ -1,5 +1,7 @@
 package com.project.tabletobserverjava.viewModel;
 
+import android.util.Log;
+
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -36,14 +38,20 @@ public class EventLogViewModel extends ViewModel {
      * @param log Instância do log a ser inserida ou atualizada.
      */
     public void insertLog(EventLog log) {
+        Log.d("EventLogViewModel", "Tentando inserir log: " + log.getEventType() + " - " + log.getDescription());
+
         List<EventLog> currentLogs = liveLogs.getValue();
-        if (currentLogs == null) currentLogs = new ArrayList<>();
+        if (currentLogs == null) {
+            currentLogs = new ArrayList<>();
+            Log.d("EventLogViewModel", "Lista de logs inicializada.");
+        }
 
         boolean logUpdated = false;
 
         // Verifica se um log do mesmo tipo já existe
         for (int i = 0; i < currentLogs.size(); i++) {
             if (currentLogs.get(i).getEventType().equals(log.getEventType())) {
+                Log.d("EventLogViewModel", "Atualizando log existente: " + log.getEventType());
                 currentLogs.set(i, log); // Atualiza o log existente
                 logUpdated = true;
                 break;
@@ -52,15 +60,19 @@ public class EventLogViewModel extends ViewModel {
 
         // Se o log não existir, adiciona à lista
         if (!logUpdated) {
+            Log.d("EventLogViewModel", "Adicionando novo log: " + log.getEventType());
             currentLogs.add(0, log);
         }
 
         // Limita o número máximo de logs
         if (currentLogs.size() > MAX_LOGS) {
+            Log.d("EventLogViewModel", "Lista de logs excedeu o limite, truncando...");
             currentLogs = currentLogs.subList(0, MAX_LOGS);
         }
 
-        liveLogs.postValue(currentLogs); // Atualiza os dados observados
+        liveLogs.postValue(currentLogs);// Atualiza os dados observados
+        Log.d("EventLogViewModel", "Lista de logs atualizada. Total de logs: " + currentLogs.size());
+
     }
 
     /**

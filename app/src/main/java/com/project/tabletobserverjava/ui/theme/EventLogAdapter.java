@@ -1,5 +1,6 @@
 package com.project.tabletobserverjava.ui.theme;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,6 +29,7 @@ public class EventLogAdapter extends RecyclerView.Adapter<EventLogAdapter.ViewHo
     }
 
     public void updateLogs(List<EventLog> newLogs) {
+        Log.d("EventLogAdapter", "Atualizando logs. Total de logs recebidos: " + newLogs.size());
         this.logs = newLogs;
         notifyDataSetChanged();
     }
