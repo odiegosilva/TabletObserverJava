@@ -48,7 +48,8 @@ public class EventLogAdapter extends RecyclerView.Adapter<EventLogAdapter.ViewHo
         // Formata o timestamp para exibir data e hora
         String formattedDate = formatTimestamp(log.getTimestamp());
 
-        holder.typeTextView.setText(log.getEventType());
+        //Comentando para formatar a exibição apenas da descrição do evento
+        // holder.typeTextView.setText(log.getEventType());
         holder.descriptionTextView.setText(log.getDescription());
         holder.timestampTextView.setText(formattedDate); // Exibe a data e hora formatadas
     }
