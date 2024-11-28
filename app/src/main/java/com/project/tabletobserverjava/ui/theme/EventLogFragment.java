@@ -93,7 +93,7 @@ public class EventLogFragment extends Fragment {
             logUpdateRunnable = () -> {
                 updateConnectionLog(); // Atualiza apenas o log de conexão
                 updateDataUsageLog();  // Atualiza o log de consumo de dados
-                updateMemoryUsageLog();
+                updateMemoryUsageLog(); // Atualiza o log de exibição de uso de memória e CPU.
                 viewModel.testLatency("https://www.google.com");
                 handler.postDelayed(logUpdateRunnable, 5000); // Reexecuta a cada 5 segundos
             };
