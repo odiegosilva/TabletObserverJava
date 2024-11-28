@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Observability</string>
     <string name="adicionar_log">Adicionar Log</string>
+    <string name="descri_o_do_tipo_de_evento">Descrição do Tipo de Evento</string>
 </resources>

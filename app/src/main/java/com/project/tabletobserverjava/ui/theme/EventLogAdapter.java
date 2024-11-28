@@ -77,7 +77,7 @@ public class EventLogAdapter extends RecyclerView.Adapter<EventLogAdapter.ViewHo
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            typeTextView = itemView.findViewById(R.id.text_type);
+          //  typeTextView = itemView.findViewById(R.id.text_type);
             descriptionTextView = itemView.findViewById(R.id.text_description);
             timestampTextView = itemView.findViewById(R.id.text_timestamp);
         }
