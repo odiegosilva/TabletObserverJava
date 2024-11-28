@@ -57,7 +57,9 @@ dependencies {
     implementation(libs.androidx.ui.graphics.android)
     implementation(libs.androidx.material3.android)
     implementation ("androidx.recyclerview:recyclerview:1.3.1")
+    implementation(libs.material)
     androidTestImplementation(libs.androidx.core.testing)
+    implementation ("androidx.cardview:cardview:1.0.0")
 
     // Room Database
     val roomVersion = "2.5.2"
