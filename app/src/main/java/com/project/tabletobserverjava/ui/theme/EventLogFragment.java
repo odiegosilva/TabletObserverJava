@@ -11,6 +11,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 
 import androidx.annotation.NonNull;
@@ -109,6 +111,12 @@ public class EventLogFragment extends Fragment {
         super.onPause();
         // Pausa o Timer quando o Fragment não está visível
         handler.removeCallbacks(logUpdateRunnable);
+
+        // Remove a flag para restaurar o comportamento padrão
+        requireActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        // Restaura o brilho padrão do sistema
+        setScreenBrightness(WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE);
     }
 
     @Override
@@ -116,6 +124,10 @@ public class EventLogFragment extends Fragment {
         super.onResume();
         // Retoma o Timer quando o Fragment volta a ser visível
         handler.post(logUpdateRunnable);
+
+        // Mantém a tela ligada e ajusta o brilho para um nível mínimo constante
+        requireActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        setScreenBrightness(0.3f); // Ajuste o brilho para 30%
     }
 
     @Override
@@ -238,5 +250,12 @@ public class EventLogFragment extends Fragment {
             Log.e("EventLogFragment", "Erro ao verificar conexão com a internet: " + e.getMessage(), e);
         }
         return false;
+    }
+
+    private void setScreenBrightness(float brightness) {
+        Window window = requireActivity().getWindow();
+        WindowManager.LayoutParams layoutParams = window.getAttributes();
+        layoutParams.screenBrightness = brightness; // Valor entre 0.0f e 1.0f
+        window.setAttributes(layoutParams);
     }
 }
