@@ -61,6 +61,8 @@ public class EventLogFragment extends Fragment {
             // Configuração do RecyclerView e Adapter
             RecyclerView recyclerView = view.findViewById(R.id.recycler_view);
             recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+
+            // Configuração inicial do Adapter
             adapter = new EventLogAdapter(new ArrayList<>());
             recyclerView.setAdapter(adapter);
 
@@ -71,6 +73,7 @@ public class EventLogFragment extends Fragment {
             EventLogViewModelFactory factory = new EventLogViewModelFactory(repository);
             viewModel = new ViewModelProvider(this, factory).get(EventLogViewModel.class);
 
+            // Verificação de inicialização do ViewModel
             if (viewModel != null) {
                 Log.d("EventLogFragment", "ViewModel inicializado com sucesso.");
             } else {
@@ -96,6 +99,7 @@ public class EventLogFragment extends Fragment {
                 updateConnectionLog(); // Atualiza apenas o log de conexão
                 updateDataUsageLog();  // Atualiza o log de consumo de dados
                 updateMemoryUsageLog(); // Atualiza o log de exibição de uso de memória e CPU.
+                viewModel.updateStorageLogs(); // Atualiza o log de armazenamento interno
                 viewModel.testLatency("https://www.google.com");
                 handler.postDelayed(logUpdateRunnable, 5000); // Reexecuta a cada 5 segundos
             };

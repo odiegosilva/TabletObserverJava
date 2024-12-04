@@ -1,5 +1,7 @@
 package com.project.tabletobserverjava.viewModel;
 
+import android.os.Environment;
+import android.os.StatFs;
 import android.util.Log;
 
 import androidx.lifecycle.LiveData;
@@ -9,6 +11,7 @@ import androidx.lifecycle.ViewModel;
 import com.project.tabletobserverjava.data.model.EventLog;
 import com.project.tabletobserverjava.data.repository.EventLogRepository;
 
+import java.io.File;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -72,8 +75,65 @@ public class EventLogViewModel extends ViewModel {
 
         liveLogs.postValue(currentLogs);// Atualiza os dados observados
         Log.d("EventLogViewModel", "Lista de logs atualizada. Total de logs: " + currentLogs.size());
-
     }
+
+    /**
+     * Retorna a capacidade total do armazenamento interno.
+     */
+    public long getTotalStorage() {
+        File path = Environment.getDataDirectory();
+        StatFs statFs = new StatFs(path.getPath());
+        long totalBytes = statFs.getBlockSizeLong() * statFs.getBlockCountLong();
+        return totalBytes;
+    }
+
+    /**
+     * Retorna o espaço livre no armazenamento interno.
+     */
+    public long getAvailableStorage() {
+        File path = Environment.getDataDirectory();
+        StatFs statFs = new StatFs(path.getPath());
+        long freeBytes = statFs.getBlockSizeLong() * statFs.getAvailableBlocksLong();
+        return freeBytes;
+    }
+
+    /**
+     * Retorna o espaço usado no armazenamento interno.
+     */
+    public long getUsedStorage() {
+        return getTotalStorage() - getAvailableStorage();
+    }
+
+    /**
+     * Calcula o percentual de uso do armazenamento interno.
+     */
+    public int getStorageUsagePercentage() {
+        long total = getTotalStorage();
+        long used = getUsedStorage();
+        return (int) ((used * 100) / total);
+    }
+
+
+    /**
+     * Atualiza os logs com informações sobre o armazenamento interno.
+     */
+    public void updateStorageLogs() {
+        long total = getTotalStorage();
+        long available = getAvailableStorage();
+        long used = getUsedStorage();
+        int percentage = getStorageUsagePercentage();
+
+        insertLog(new EventLog(
+                System.currentTimeMillis(),
+                "STORAGE",
+                String.format("Armazenamento total: %.2f GB, Usado: %.2f GB, Livre: %.2f GB (%d%%)",
+                        total / (1024.0 * 1024.0 * 1024.0),
+                        used / (1024.0 * 1024.0 * 1024.0),
+                        available / (1024.0 * 1024.0 * 1024.0),
+                        percentage)
+        ));
+    }
+
 
     /**
      * Testa a latência da rede ativa.
