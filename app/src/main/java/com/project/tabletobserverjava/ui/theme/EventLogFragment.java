@@ -70,7 +70,7 @@ public class EventLogFragment extends Fragment {
             EventLogRepository repository = new EventLogRepository(
                     AppDatabase.getInstance(requireContext()).eventLogDao()
             );
-            EventLogViewModelFactory factory = new EventLogViewModelFactory(repository);
+            EventLogViewModelFactory factory = new EventLogViewModelFactory(repository, requireContext());
             viewModel = new ViewModelProvider(this, factory).get(EventLogViewModel.class);
 
             // Verificação de inicialização do ViewModel
@@ -81,10 +81,7 @@ public class EventLogFragment extends Fragment {
             }
 
             // Observa mudanças nos logs
-            viewModel.getLiveLogs().observe(getViewLifecycleOwner(), logs ->{
-                Log.d("EventLogFragment", "Observando logs. Total de logs recebidos: " + logs.size());
-                adapter.updateLogs(logs);
-            });
+            viewModel.getLiveLogs().observe(getViewLifecycleOwner(), logs -> adapter.updateLogs(logs));
 
             // Inicializa os valores de tráfego de dados
             initialRxBytes = TrafficStats.getTotalRxBytes();
@@ -99,7 +96,7 @@ public class EventLogFragment extends Fragment {
                 updateConnectionLog(); // Atualiza apenas o log de conexão
                 updateDataUsageLog();  // Atualiza o log de consumo de dados
                 updateMemoryUsageLog(); // Atualiza o log de exibição de uso de memória e CPU.
-                viewModel.updateStorageLogs(); // Atualiza o log de armazenamento interno
+                viewModel.updateStorageLogs(); // Atualiza os logs de armazenamento
                 viewModel.testLatency("https://www.google.com");
                 handler.postDelayed(logUpdateRunnable, 5000); // Reexecuta a cada 5 segundos
             };

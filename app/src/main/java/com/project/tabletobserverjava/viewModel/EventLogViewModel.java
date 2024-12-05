@@ -1,5 +1,6 @@
 package com.project.tabletobserverjava.viewModel;
 
+import android.content.Context;
 import android.os.Environment;
 import android.os.StatFs;
 import android.util.Log;
@@ -10,6 +11,7 @@ import androidx.lifecycle.ViewModel;
 
 import com.project.tabletobserverjava.data.model.EventLog;
 import com.project.tabletobserverjava.data.repository.EventLogRepository;
+import com.project.tabletobserverjava.utils.StorageUtil;
 
 import java.io.File;
 import java.net.HttpURLConnection;
@@ -23,12 +25,19 @@ import java.util.List;
  */
 public class EventLogViewModel extends ViewModel {
 
+    private static final int MAX_LOGS = 20; // Limite máximo de logs na lista
+    private final StorageUtil storageUtil; // Instância de StorageUtil
     private final EventLogRepository repository;
     private final MutableLiveData<List<EventLog>> liveLogs = new MutableLiveData<>(new ArrayList<>());
-    private static final int MAX_LOGS = 20; // Limite máximo de logs na lista
 
-    public EventLogViewModel(EventLogRepository repository) {
+    private Context context;
+
+
+
+    public EventLogViewModel(EventLogRepository repository, Context context) {
         this.repository = repository;
+        this.context = context;  // Armazene o contexto aqui
+        this.storageUtil = new StorageUtil(context); // Passa o contexto para o StorageUtil
     }
 
     public LiveData<List<EventLog>> getLiveLogs() {
@@ -78,30 +87,85 @@ public class EventLogViewModel extends ViewModel {
     }
 
     /**
-     * Retorna a capacidade total do armazenamento interno.
+     * Retorna a capacidade total do armazenamento interno, incluindo partições reservadas.
      */
     public long getTotalStorage() {
         File path = Environment.getDataDirectory();
-        StatFs statFs = new StatFs(path.getPath());
-        long totalBytes = statFs.getBlockSizeLong() * statFs.getBlockCountLong();
-        return totalBytes;
+        StatFs stat = new StatFs(path.getPath());
+        return stat.getBlockSizeLong() * stat.getBlockCountLong();
     }
 
     /**
-     * Retorna o espaço livre no armazenamento interno.
+     * Retorna o espaço disponível no armazenamento interno (exclui partições reservadas).
      */
     public long getAvailableStorage() {
         File path = Environment.getDataDirectory();
-        StatFs statFs = new StatFs(path.getPath());
-        long freeBytes = statFs.getBlockSizeLong() * statFs.getAvailableBlocksLong();
-        return freeBytes;
+        StatFs stat = new StatFs(path.getPath());
+        return stat.getBlockSizeLong() * stat.getAvailableBlocksLong();
     }
 
+
     /**
-     * Retorna o espaço usado no armazenamento interno.
+     * Retorna o espaço usado no armazenamento interno, incluindo cache de aplicativos.
      */
     public long getUsedStorage() {
         return getTotalStorage() - getAvailableStorage();
+    }
+
+    /**
+     * Retorna o tamanho do cache dos aplicativos (opcional).
+     */
+    public long getCacheSize() {
+        long cacheSize = 0;
+
+        // Cache interno;
+        File internalCache = context.getCacheDir();
+        cacheSize += getFolderSize(internalCache);
+
+        // Cache externo (se disponível)
+        File externalCache = context.getExternalCacheDir();
+        if (externalCache != null) {
+            cacheSize += getFolderSize(externalCache);
+        }
+
+        return cacheSize;
+    }
+
+    /**
+     * Calcula o tamanho de uma pasta e todos os seus arquivos.
+     */
+    private long getFolderSize(File dir) {
+        long size = 0;
+        if (dir != null && dir.isDirectory()) {
+            for (File file : dir.listFiles()) {
+                if (file.isDirectory()) {
+                    size += getFolderSize(file);
+                } else {
+                    size += file.length();
+                }
+            }
+        }
+        return size;
+    }
+
+
+    /**
+     * Calcula o tamanho de um diretório e seus subdiretórios.
+     */
+    private long getDirectorySize(File dir) {
+        if (dir == null || !dir.exists()) {
+            return 0;
+        }
+
+        long size = 0;
+        for (File file : dir.listFiles()) {
+            if (file.isDirectory()) {
+                size += getDirectorySize(file);
+            } else {
+                size += file.length();
+            }
+        }
+        return size;
     }
 
     /**
@@ -113,27 +177,42 @@ public class EventLogViewModel extends ViewModel {
         return (int) ((used * 100) / total);
     }
 
-
     /**
-     * Atualiza os logs com informações sobre o armazenamento interno.
+     * Atualiza os logs com informações sobre o armazenamento interno,
+     * considerando o sistema operacional e cache.
      */
     public void updateStorageLogs() {
-        long total = getTotalStorage();
-        long available = getAvailableStorage();
-        long used = getUsedStorage();
-        int percentage = getStorageUsagePercentage();
+        long totalStorage = getTotalStorage(); // Total do armazenamento (partição de dados)
+        long availableStorage = getAvailableStorage(); // Espaço livre (partição de dados)
+        long usedStorage = totalStorage - availableStorage;
 
+        // Inclui o cache no espaço usado
+        long cacheSize = getCacheSize();
+        usedStorage += cacheSize;
+
+        // Calcula o percentual de uso considerando o cache
+        int percentage = (int) ((usedStorage * 100) / totalStorage);
+
+        // Log do uso de armazenamento
         insertLog(new EventLog(
                 System.currentTimeMillis(),
                 "STORAGE",
-                String.format("Armazenamento total: %.2f GB, Usado: %.2f GB, Livre: %.2f GB (%d%%)",
-                        total / (1024.0 * 1024.0 * 1024.0),
-                        used / (1024.0 * 1024.0 * 1024.0),
-                        available / (1024.0 * 1024.0 * 1024.0),
+                String.format("Total: %.2f GB, Usado: %.2f GB, Livre: %.2f GB (%d%%)",
+                        totalStorage / (1024.0 * 1024.0 * 1024.0),
+                        usedStorage / (1024.0 * 1024.0 * 1024.0),
+                        availableStorage / (1024.0 * 1024.0 * 1024.0),
                         percentage)
         ));
-    }
 
+        // Verifique se o uso de armazenamento ultrapassou 90%
+        if (percentage > 90) {
+            insertLog(new EventLog(
+                    System.currentTimeMillis(),
+                    "WARNING",
+                    "Uso de armazenamento acima de 90%"
+            ));
+        }
+    }
 
     /**
      * Testa a latência da rede ativa.
