@@ -1,12 +1,16 @@
 package com.project.tabletobserverjava.ui.theme;
 
 import android.app.ActivityManager;
+import android.app.AlertDialog;
+import android.app.AppOpsManager;
 import android.content.Context;
+import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.TrafficStats;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -90,13 +94,26 @@ public class EventLogFragment extends Fragment {
             // Adiciona logs iniciais
             addInitialLogs();
 
+            requestUsageAccessPermission();
+
+
+            // Configura o botão para solicitar permissão de acesso ao uso
+            Button permissionButton = view.findViewById(R.id.button_request_permission);
+            permissionButton.setOnClickListener(v -> {
+                if (!isUsageAccessGranted()) {
+                    requestUsageAccessPermission();
+                } else {
+                    Log.d("EventLogFragment", "Permissão já concedida.");
+                }
+            });
+
 
             // Timer para atualizar logs de conexão
             logUpdateRunnable = () -> {
                 updateConnectionLog(); // Atualiza apenas o log de conexão
                 updateDataUsageLog();  // Atualiza o log de consumo de dados
                 updateMemoryUsageLog(); // Atualiza o log de exibição de uso de memória e CPU.
-                viewModel.updateStorageLogs(); // Atualiza os logs de armazenamento
+                viewModel.updateStorageLogs(getContext()); // Atualiza os logs de armazenamento
                 viewModel.testLatency("https://www.google.com");
                 handler.postDelayed(logUpdateRunnable, 5000); // Reexecuta a cada 5 segundos
             };
@@ -129,6 +146,16 @@ public class EventLogFragment extends Fragment {
         // Mantém a tela ligada e ajusta o brilho para um nível mínimo constante
         requireActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setScreenBrightness(0.3f); // Ajuste o brilho para 30%
+
+        // Verifique se a permissão foi concedida
+        AppOpsManager appOpsManager = (AppOpsManager) requireContext().getSystemService(Context.APP_OPS_SERVICE);
+        int mode = appOpsManager.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), requireContext().getPackageName());
+
+        if (mode == AppOpsManager.MODE_ALLOWED) {
+            Log.d("PermissionCheck", "Permissão de uso concedida.");
+        } else {
+            Log.d("PermissionCheck", "Permissão de uso NÃO concedida.");
+        }
     }
 
     @Override
@@ -231,6 +258,31 @@ public class EventLogFragment extends Fragment {
             Log.e("EventLogFragment", "Erro ao atualizar log de consumo de dados: " + e.getMessage(), e);
         }
     }
+
+    /**
+     * Verifica se a permissão de acesso ao uso foi concedida.
+     */
+    private boolean isUsageAccessGranted() {
+        AppOpsManager appOpsManager = (AppOpsManager) requireContext().getSystemService(Context.APP_OPS_SERVICE);
+        int mode = appOpsManager.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), requireContext().getPackageName());
+        return mode == AppOpsManager.MODE_ALLOWED;
+    }
+
+    /**
+     * Solicita ao usuário a permissão de acesso ao uso.
+     */
+    private void requestUsageAccessPermission() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Permissão Necessária")
+                .setMessage("Para monitorar o uso de armazenamento, o aplicativo precisa de permissão de acesso ao uso. Você será redirecionado para as configurações.")
+                .setPositiveButton("Conceder", (dialog, which) -> {
+                    Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
+                    startActivity(intent);
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
 
 
     /**

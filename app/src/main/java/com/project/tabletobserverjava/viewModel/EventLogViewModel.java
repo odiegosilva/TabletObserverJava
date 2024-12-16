@@ -1,10 +1,18 @@
 package com.project.tabletobserverjava.viewModel;
 
+import android.app.usage.StorageStats;
+import android.app.usage.StorageStatsManager;
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Environment;
 import android.os.StatFs;
+import android.os.UserHandle;
+import android.os.storage.StorageManager;
 import android.util.Log;
 
+import androidx.annotation.RequiresApi;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -18,6 +26,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * ViewModel para gerenciar os dados de EventLog.
@@ -33,11 +42,14 @@ public class EventLogViewModel extends ViewModel {
     private Context context;
 
 
-
     public EventLogViewModel(EventLogRepository repository, Context context) {
         this.repository = repository;
         this.context = context;  // Armazene o contexto aqui
         this.storageUtil = new StorageUtil(context); // Passa o contexto para o StorageUtil
+    }
+
+    private int getAndroidVersion() {
+        return android.os.Build.VERSION.SDK_INT;
     }
 
     public LiveData<List<EventLog>> getLiveLogs() {
@@ -115,7 +127,7 @@ public class EventLogViewModel extends ViewModel {
     /**
      * Retorna o tamanho do cache dos aplicativos (opcional).
      */
-    public long getCacheSize() {
+    public long getCacheSize(Context context) {
         long cacheSize = 0;
 
         // Cache interno;
@@ -181,38 +193,173 @@ public class EventLogViewModel extends ViewModel {
      * Atualiza os logs com informações sobre o armazenamento interno,
      * considerando o sistema operacional e cache.
      */
-    public void updateStorageLogs() {
-        long totalStorage = getTotalStorage(); // Total do armazenamento (partição de dados)
-        long availableStorage = getAvailableStorage(); // Espaço livre (partição de dados)
-        long usedStorage = totalStorage - availableStorage;
 
-        // Inclui o cache no espaço usado
-        long cacheSize = getCacheSize();
-        usedStorage += cacheSize;
+    public void updateStorageLogs(Context context) {
+        int androidVersion = getAndroidVersion();
 
-        // Calcula o percentual de uso considerando o cache
-        int percentage = (int) ((usedStorage * 100) / totalStorage);
+        if (androidVersion >= 26) {
+            // Para Android 8.0 (API 26) e superior
+            try {
+                StorageStatsManager storageStatsManager = (StorageStatsManager) context.getSystemService(Context.STORAGE_STATS_SERVICE);
+                StorageManager storageManager = (StorageManager) context.getSystemService(Context.STORAGE_SERVICE);
+                PackageManager packageManager = context.getPackageManager();
+                UUID storageUuid = storageManager.getUuidForPath(Environment.getDataDirectory()); // Correção do UUID
 
-        // Log do uso de armazenamento
-        insertLog(new EventLog(
-                System.currentTimeMillis(),
-                "STORAGE",
-                String.format("Total: %.2f GB, Usado: %.2f GB, Livre: %.2f GB (%d%%)",
-                        totalStorage / (1024.0 * 1024.0 * 1024.0),
-                        usedStorage / (1024.0 * 1024.0 * 1024.0),
-                        availableStorage / (1024.0 * 1024.0 * 1024.0),
-                        percentage)
-        ));
+                long totalStorage = getTotalStorage(); // Capacidade total do dispositivo
+                long appBytes = 0; // Bytes usados por todos os aplicativos
+                long cacheBytes = 0; // Bytes usados como cache
 
-        // Verifique se o uso de armazenamento ultrapassou 90%
-        if (percentage > 90) {
+                // Itera por todos os pacotes instalados para calcular uso de armazenamento
+                List<PackageInfo> installedPackages = packageManager.getInstalledPackages(0);
+                for (PackageInfo packageInfo : installedPackages) {
+                    String packageName = packageInfo.packageName;
+
+                    // Obtém as estatísticas de armazenamento do pacote
+                    StorageStats stats = storageStatsManager.queryStatsForPackage(
+                            storageUuid,
+                            packageName,
+                            UserHandle.getUserHandleForUid(android.os.Process.myUid()) // Substituí UserHandle.of e getIdentifier()
+                    );
+
+                    appBytes += stats.getAppBytes();
+                    cacheBytes += stats.getCacheBytes();
+                }
+
+                long availableStorage = totalStorage - appBytes - cacheBytes;
+                long usedStorage = totalStorage - availableStorage;
+
+                int usedPercentage = (int) ((usedStorage * 100) / totalStorage);
+
+                // Adiciona log com StorageStatsManager
+                insertLog(new EventLog(
+                        System.currentTimeMillis(),
+                        "STORAGE_STATS",
+                        String.format("Total: %.2f GB, Usado: %.2f GB, Livre: %.2f GB (%d%%)",
+                                totalStorage / (1024.0 * 1024.0 * 1024.0),
+                                usedStorage / (1024.0 * 1024.0 * 1024.0),
+                                availableStorage / (1024.0 * 1024.0 * 1024.0),
+                                usedPercentage)
+                ));
+
+                // Aviso se o uso ultrapassar 90%
+                if (usedPercentage > 90) {
+                    insertLog(new EventLog(
+                            System.currentTimeMillis(),
+                            "WARNING",
+                            "Uso de armazenamento acima de 90% (StorageStatsManager)"
+                    ));
+                }
+
+            } catch (Exception e) {
+                Log.e("EventLogViewModel", "Erro ao usar StorageStatsManager: " + e.getMessage(), e);
+                insertLog(new EventLog(
+                        System.currentTimeMillis(),
+                        "STORAGE_STATS",
+                        "Erro ao obter informações de armazenamento com StorageStatsManager."
+                ));
+            }
+        } else {
+            // Fallback para versões abaixo do Android 8.0
+            updateStorageForLegacyStorage(context);
+        }
+    }
+
+
+
+    private void updateStorageForLegacyStorage(Context context) {
+        try {
+            long totalStorage = getTotalStorage();
+            long availableStorage = getAvailableStorage();
+            long usedStorage = totalStorage - availableStorage;
+            long cacheSize = getCacheSize(context);
+            usedStorage += cacheSize; // Inclui o cache no uso total
+
+            int usedPercentage = (int) ((usedStorage * 100) / totalStorage);
+
             insertLog(new EventLog(
                     System.currentTimeMillis(),
-                    "WARNING",
-                    "Uso de armazenamento acima de 90%"
+                    "STORAGE",
+                    String.format("Total: %.2f GB, Usado: %.2f GB, Livre: %.2f GB (%d%%)",
+                            totalStorage / (1024.0 * 1024.0 * 1024.0),
+                            usedStorage / (1024.0 * 1024.0 * 1024.0),
+                            availableStorage / (1024.0 * 1024.0 * 1024.0),
+                            usedPercentage)
+            ));
+
+            if (usedPercentage > 90) {
+                insertLog(new EventLog(
+                        System.currentTimeMillis(),
+                        "WARNING",
+                        "Uso de armazenamento acima de 90%"
+                ));
+            }
+
+        } catch (Exception e) {
+            Log.e("EventLogViewModel", "Erro ao calcular armazenamento legado: " + e.getMessage(), e);
+        }
+    }
+
+    private void updateStorageForScopedStorage(Context context) {
+        try {
+            StorageStatsManager storageStatsManager = (StorageStatsManager) context.getSystemService(Context.STORAGE_STATS_SERVICE);
+            StorageManager storageManager = (StorageManager) context.getSystemService(Context.STORAGE_SERVICE);
+            PackageManager packageManager = context.getPackageManager();
+            UUID storageUuid = storageManager.getUuidForPath(Environment.getDataDirectory());
+
+            long totalStorage = getTotalStorage();
+            long appBytes = 0;
+            long cacheBytes = 0;
+
+            // Itera por todos os pacotes instalados para calcular uso de armazenamento
+            List<PackageInfo> packages = packageManager.getInstalledPackages(0); // Obter pacotes instalados
+            for (PackageInfo packageInfo : packages) {
+                String packageName = packageInfo.packageName;
+
+                // Usar android.os.Process.myUid() diretamente em vez de getIdentifier
+                StorageStats stats = storageStatsManager.queryStatsForPackage(
+                        storageUuid,
+                        packageName,
+                        UserHandle.getUserHandleForUid(android.os.Process.myUid())
+                );
+
+                appBytes += stats.getAppBytes();
+                cacheBytes += stats.getCacheBytes();
+            }
+
+            long availableStorage = totalStorage - appBytes - cacheBytes;
+            long usedStorage = totalStorage - availableStorage;
+            int usedPercentage = (int) ((usedStorage * 100) / totalStorage);
+
+            insertLog(new EventLog(
+                    System.currentTimeMillis(),
+                    "STORAGE_STATS",
+                    String.format("Total: %.2f GB, Usado: %.2f GB, Livre: %.2f GB (%d%%)",
+                            totalStorage / (1024.0 * 1024.0 * 1024.0),
+                            usedStorage / (1024.0 * 1024.0 * 1024.0),
+                            availableStorage / (1024.0 * 1024.0 * 1024.0),
+                            usedPercentage)
+            ));
+
+            if (usedPercentage > 90) {
+                insertLog(new EventLog(
+                        System.currentTimeMillis(),
+                        "WARNING",
+                        "Uso de armazenamento acima de 90% (StorageStatsManager)"
+                ));
+            }
+        } catch (Exception e) {
+            Log.e("EventLogViewModel", "Erro ao calcular armazenamento Scoped Storage: " + e.getMessage(), e);
+            insertLog(new EventLog(
+                    System.currentTimeMillis(),
+                    "STORAGE_STATS",
+                    "Erro ao obter informações de armazenamento com StorageStatsManager."
             ));
         }
     }
+
+
+
+
 
     /**
      * Testa a latência da rede ativa.
