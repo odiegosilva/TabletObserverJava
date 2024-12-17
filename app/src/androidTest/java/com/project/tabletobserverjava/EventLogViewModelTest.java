@@ -2,6 +2,8 @@ package com.project.tabletobserverjava;
 
 import static org.junit.Assert.assertEquals;
 
+import android.content.Context;
+
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 
 import com.project.tabletobserverjava.data.model.EventLog;
@@ -11,6 +13,7 @@ import com.project.tabletobserverjava.viewModel.EventLogViewModel;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
 
 import java.util.List;
 
@@ -19,13 +22,16 @@ public class EventLogViewModelTest {
     @Rule
     public InstantTaskExecutorRule rule = new InstantTaskExecutorRule();
 
+    @Mock
+    private Context mockContext; // Mock para o Context
+
     private EventLogViewModel viewModel;
     private MockEventLogRepository mockRepository; // Mock do repositório para simulação
 
     @Before
     public void setup() {
         mockRepository = new MockEventLogRepository();
-        viewModel = new EventLogViewModel(mockRepository);
+        viewModel = new EventLogViewModel(mockRepository, mockContext);
     }
 
     @Test
