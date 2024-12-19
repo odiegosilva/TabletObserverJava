@@ -12,6 +12,7 @@ import android.os.UserHandle;
 import android.os.storage.StorageManager;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -63,7 +64,7 @@ public class EventLogViewModel extends ViewModel {
      *
      * @param log Instância do log a ser inserida ou atualizada.
      */
-    public void insertLog(EventLog log) {
+    public void insertLog(@NonNull EventLog log) {
         Log.d("EventLogViewModel", "Tentando inserir log: " + log.getEventType() + " - " + log.getDescription());
 
         List<EventLog> currentLogs = liveLogs.getValue();

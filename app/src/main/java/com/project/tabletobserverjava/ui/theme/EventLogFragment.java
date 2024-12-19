@@ -6,8 +6,10 @@ import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
+import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.TrafficStats;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.Settings;
@@ -46,7 +48,7 @@ public class EventLogFragment extends Fragment {
 
     private EventLogViewModel viewModel;
 
-    private Handler handler = new Handler();
+    private final Handler handler = new Handler();
     private Runnable logUpdateRunnable;
 
     private EventLogAdapter adapter;
@@ -204,12 +206,6 @@ public class EventLogFragment extends Fragment {
             long availableMemory = memoryInfo.availMem / (1024 * 1024); // Memória livre em MB
             long usedPercentage = (usedMemory * 100) / totalMemory; // Porcentagem de memória usada
 
-            // Criação da mensagem do log
-            String logMessage = String.format(
-                    "Memória Total: %d MB, Usada: %d MB (%d%%), Livre: %d MB, (%d%%)%s",
-                    totalMemory, usedMemory, usedPercentage, availableMemory,
-                    usedPercentage > 80 ? " - ALERTA: Uso acima de 80%!" : "" // Adiciona alerta no final do texto
-            );
 
             Log.d("EventLogFragment", String.format("Memória utilizada: %d MB de %d MB (%d%%)", usedMemory, totalMemory, usedPercentage));
 
@@ -294,16 +290,21 @@ public class EventLogFragment extends Fragment {
      * @return true se conectado, false caso contrário.
      */
     private boolean isConnectedToInternet() {
-        try {
-            ConnectivityManager connectivityManager =
-                    (ConnectivityManager) requireContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        ConnectivityManager connectivityManager =
+                (ConnectivityManager) requireContext().getSystemService(Context.CONNECTIVITY_SERVICE);
 
-            if (connectivityManager != null) {
+        if (connectivityManager != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities
+                        (connectivityManager.getActiveNetwork());
+                if (capabilities != null) {
+                    return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+                }
+            } else {
                 NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
                 return networkInfo != null && networkInfo.isConnected();
             }
-        } catch (Exception e) {
-            Log.e("EventLogFragment", "Erro ao verificar conexão com a internet: " + e.getMessage(), e);
         }
         return false;
     }
