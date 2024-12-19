@@ -19,7 +19,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -56,6 +55,8 @@ public class EventLogFragment extends Fragment {
     // Variáveis para calcular o consumo de dados
     private long initialRxBytes = 0;
     private long initialTxBytes = 0;
+
+    private boolean usageAccessPermissionRequested = false;
 
     @Nullable
     @Override
@@ -100,19 +101,8 @@ public class EventLogFragment extends Fragment {
             // Adiciona logs iniciais
             addInitialLogs();
 
-            requestUsageAccessPermission();
-
-
-            // Configura o botão para solicitar permissão de acesso ao uso
-            Button permissionButton = view.findViewById(R.id.button_request_permission);
-            permissionButton.setOnClickListener(v -> {
-                if (!isUsageAccessGranted()) {
-                    requestUsageAccessPermission();
-                } else {
-                    Log.d("EventLogFragment", "Permissão já concedida.");
-                }
-            });
-
+            // Verifica e solicita permissão de uso
+            validateAndRequestUsageAccessPermission();
 
             // Timer para atualizar logs de conexão
             logUpdateRunnable = () -> {
@@ -314,5 +304,34 @@ public class EventLogFragment extends Fragment {
         WindowManager.LayoutParams layoutParams = window.getAttributes();
         layoutParams.screenBrightness = brightness; // Valor entre 0.0f e 1.0f
         window.setAttributes(layoutParams);
+    }
+    /**
+     * Verifica se a permissão de acesso ao uso foi concedida e, se não, solicita.
+     */
+    private void validateAndRequestUsageAccessPermission() {
+        if (!isUsageAccessGranted(requireContext())) {
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Permissão Necessária")
+                    .setMessage("Este aplicativo precisa de acesso ao uso para funcionar corretamente. Por favor, conceda a permissão.")
+                    .setPositiveButton("Configurações", (dialog, which) -> {
+                        Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
+                        startActivity(intent);
+                    })
+                    .setNegativeButton("Cancelar", (dialog, which) -> {
+                        Log.w("EventLogFragment", "Permissão de acesso ao uso não concedida.");
+                    })
+                    .show();
+        } else {
+            Log.d("EventLogFragment", "Permissão de acesso ao uso já concedida.");
+        }
+    }
+
+    /**
+     * Verifica se a permissão de acesso ao uso já foi concedida.
+     */
+    private boolean isUsageAccessGranted(Context context) {
+        AppOpsManager appOpsManager = (AppOpsManager) context.getSystemService(Context.APP_OPS_SERVICE);
+        int mode = appOpsManager.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), context.getPackageName());
+        return mode == AppOpsManager.MODE_ALLOWED;
     }
 }
