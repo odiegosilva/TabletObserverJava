@@ -8,7 +8,8 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 
 import com.project.tabletobserverjava.data.model.EventLog;
 import com.project.tabletobserverjava.mock.MockEventLogRepository;
-import com.project.tabletobserverjava.viewModel.EventLogViewModel;
+import com.project.tabletobserverjava.ui.theme.EventLogViewModel;
+
 
 import org.junit.Before;
 import org.junit.Rule;

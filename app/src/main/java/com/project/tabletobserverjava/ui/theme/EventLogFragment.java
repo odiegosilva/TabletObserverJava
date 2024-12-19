@@ -22,6 +22,9 @@ import android.widget.Button;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import com.project.tabletobserverjava.viewModel.EventLogViewModelFactory;
+
+
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -30,11 +33,10 @@ import com.project.tabletobserverjava.R;
 import com.project.tabletobserverjava.data.local.AppDatabase;
 import com.project.tabletobserverjava.data.model.EventLog;
 import com.project.tabletobserverjava.data.repository.EventLogRepository;
-import com.project.tabletobserverjava.viewModel.EventLogViewModel;
-import com.project.tabletobserverjava.viewModel.EventLogViewModelFactory;
+
 
 import java.util.ArrayList;
-import java.util.Calendar;
+
 
 /**
  * Fragment que exibe os logs armazenados em uma RecyclerView.
@@ -42,9 +44,11 @@ import java.util.Calendar;
  */
 public class EventLogFragment extends Fragment {
 
+    private EventLogViewModel viewModel;
+
     private Handler handler = new Handler();
     private Runnable logUpdateRunnable;
-    private EventLogViewModel viewModel;
+
     private EventLogAdapter adapter;
 
     // Variáveis para calcular o consumo de dados
@@ -113,7 +117,7 @@ public class EventLogFragment extends Fragment {
                 updateConnectionLog(); // Atualiza apenas o log de conexão
                 updateDataUsageLog();  // Atualiza o log de consumo de dados
                 updateMemoryUsageLog(); // Atualiza o log de exibição de uso de memória e CPU.
-                viewModel.updateStorageLogs(getContext()); // Atualiza os logs de armazenamento
+                viewModel.updateStorageLogs(requireContext()); // Atualiza os logs de armazenamento
                 viewModel.testLatency("https://www.google.com");
                 handler.postDelayed(logUpdateRunnable, 5000); // Reexecuta a cada 5 segundos
             };
@@ -197,7 +201,15 @@ public class EventLogFragment extends Fragment {
 
             long totalMemory = memoryInfo.totalMem / (1024 * 1024); // Total de memória em MB
             long usedMemory = (memoryInfo.totalMem - memoryInfo.availMem) / (1024 * 1024); // Memória usada em MB
+            long availableMemory = memoryInfo.availMem / (1024 * 1024); // Memória livre em MB
             long usedPercentage = (usedMemory * 100) / totalMemory; // Porcentagem de memória usada
+
+            // Criação da mensagem do log
+            String logMessage = String.format(
+                    "Memória Total: %d MB, Usada: %d MB (%d%%), Livre: %d MB, (%d%%)%s",
+                    totalMemory, usedMemory, usedPercentage, availableMemory,
+                    usedPercentage > 80 ? " - ALERTA: Uso acima de 80%!" : "" // Adiciona alerta no final do texto
+            );
 
             Log.d("EventLogFragment", String.format("Memória utilizada: %d MB de %d MB (%d%%)", usedMemory, totalMemory, usedPercentage));
 
@@ -205,17 +217,8 @@ public class EventLogFragment extends Fragment {
             viewModel.insertLog(new EventLog(
                     System.currentTimeMillis(),
                     "MEMORY_USAGE",
-                    String.format("Memória utilizada: %d MB de %d MB (%d%%)", usedMemory, totalMemory, usedPercentage)
-            ));
-
-            // Alerta se o uso de memória estiver alto
-            if (usedPercentage > 80) {
-                viewModel.insertLog(new EventLog(
-                        System.currentTimeMillis(),
-                        "WARNING",
-                        "Uso de memória acima de 80%"
-                ));
-            }
+                    String.format("Memória utilizada: %d MB de %d MB (%d%%)", usedMemory, totalMemory,usedPercentage,usedPercentage > 80 ? " - ALERTA: Uso acima de 80%!" : "" // Adiciona alerta no final do texto)
+            )));
         } catch (Exception e) {
             Log.e("EventLogFragment", "Erro ao atualizar log de uso de memória: " + e.getMessage(), e);
         }

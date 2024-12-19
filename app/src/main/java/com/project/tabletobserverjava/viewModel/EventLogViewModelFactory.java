@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.project.tabletobserverjava.data.repository.EventLogRepository;
+import com.project.tabletobserverjava.ui.theme.EventLogViewModel;
 
 /**
  * Factory para criar instâncias de EventLogViewModel com as dependências necessárias.
