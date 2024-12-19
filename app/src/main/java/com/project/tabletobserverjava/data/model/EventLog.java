@@ -15,7 +15,6 @@ public class EventLog {
     private long timestamp;
     private String eventType;
     private String description;
-
     /**
      * Construtor público vazio para o Room.
      * Necessário para operações internas do framework.
